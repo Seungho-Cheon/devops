@@ -1,0 +1,28 @@
+name: Docker Build Check # 액션의 이름 (내 마음대로 설정 가능)
+
+# 언제 실행할지 정하는 부분
+on:
+  push:
+    branches: [ "main" ] # main 브랜치에 코드가 push(업로드) 될 때 실행
+  pull_request:
+    branches: [ "main" ] # Pull Request가 들어올 때도 실행
+
+# 실제 할 일(Job)을 정의
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest # GitHub가 제공하는 리눅스 컴퓨터(우분투) 위에서 실행
+
+    steps:
+    # 1. GitHub에 올린 내 코드를 이 컴퓨터로 내려받음
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. 도커 이미지 빌드 테스트
+    # -t 옵션으로 'test-image'라는 이름을 붙여서 빌드해봅니다.
+    - name: Build Docker image
+      run: docker build -t test-image .
+
+    # 3. 도커 컨테이너 실행 테스트 (잘 작동하는지 확인)
+    # 실제로 실행해서 에러 없이 "Hello"가 잘 나오는지 확인합니다.
+    - name: Run Docker container
+      run: docker run --rm test-image
