@@ -28,3 +28,4 @@ jobs:
         context: .
         push: true # true로 설정하면 빌드 후 자동으로 업로드됨
         tags: ${{ secrets.DOCKER_USERNAME }}/my-python-app:latest
+
