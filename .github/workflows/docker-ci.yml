@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  # [Job 1] 빌드하고 도커 허브에 올리기 (기존과 동일)
+  # [Job 1] 이미지 빌드 및 배포 (기존과 동일)
   build-and-push:
     runs-on: ubuntu-latest
     steps:
@@ -25,24 +25,45 @@ jobs:
         push: true
         tags: ${{ secrets.DOCKER_USERNAME }}/my-python-app:latest
 
-  # [Job 2] AWS 서버에 들어가서 배포하기 (새로 추가됨!)
+  # [Job 2] AWS 서버 배포 (업그레이드됨!)
   deploy:
-    needs: build-and-push # 중요: Job 1이 성공해야 실행됨
+    needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-    - name: Connect to AWS and Deploy
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 1. docker-compose.yml 파일을 서버로 복사 (scp)
+    - name: Copy docker-compose.yml via SSH
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_KEY }}
+        source: "docker-compose.yml"
+        target: "/home/ubuntu/"
+
+    # 2. 서버에 접속해서 실행
+    - name: Execute remote ssh commands
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.EC2_HOST }}      # 아까 등록한 IP
-        username: ubuntu                   # 우분투 기본 아이디
-        key: ${{ secrets.EC2_KEY }}        # 아까 등록한 키
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_KEY }}
         script: |
-          # 1. 기존에 돌고 있던 컨테이너 멈추고 삭제 (에러 무시)
-          sudo docker stop my-server || true
-          sudo docker rm my-server || true
-          
-          # 2. 가장 최신 이미지 받아오기
-          sudo docker pull ${{ secrets.DOCKER_USERNAME }}/my-python-app:latest
-          
-          # 3. 새 이미지로 다시 실행 (이름을 my-server로 지정)
-          sudo docker run -d -p 80:5000 --name my-server ${{ secrets.DOCKER_USERNAME }}/my-python-app:latest
+          # Docker Compose 플러그인 설치 (없으면 설치)
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin
+
+          # 1. 기존 컨테이너 정리 (충돌 방지)
+          # (기존에 docker run으로 띄운게 있다면 삭제합니다)
+          sudo docker rm -f $(sudo docker ps -aq) || true
+
+          # 2. 최신 이미지 가져오기
+          sudo docker compose pull
+
+          # 3. 서비스 실행 (백그라운드)
+          sudo docker compose up -d
+
+          # 4. 불필요한 이미지 청소
+          sudo docker image prune -f

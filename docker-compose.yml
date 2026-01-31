@@ -1,0 +1,15 @@
+version: '3'
+services:
+  web:
+    # [수정] build: . 대신 image를 사용합니다.
+    # 서버는 Docker Hub에 있는 이미지를 가져다 씁니다.
+    image: jongroinf/my-python-app:latest
+    ports:
+      - "80:5000"  # [수정] 서버에서는 80번 포트(기본)를 엽니다.
+    depends_on:
+      - redis
+    restart: always # 서버가 재부팅돼도 알아서 켜지게 함
+
+  redis:
+    image: "redis:alpine"
+    restart: always
