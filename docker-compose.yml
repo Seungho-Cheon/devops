@@ -1,15 +1,25 @@
 version: '3'
+
 services:
+  # [1] 웹 서버 (파이썬) - 이제 외부 포트를 닫습니다. (Nginx랑만 대화함)
   web:
-    # [수정] build: . 대신 image를 사용합니다.
-    # 서버는 Docker Hub에 있는 이미지를 가져다 씁니다.
     image: jongroinf/my-python-app:latest
-    ports:
-      - "80:5000"  # [수정] 서버에서는 80번 포트(기본)를 엽니다.
+    restart: always
     depends_on:
       - redis
-    restart: always # 서버가 재부팅돼도 알아서 켜지게 함
 
+  # [2] 데이터베이스
   redis:
     image: "redis:alpine"
+    restart: always
+
+  # [3] Nginx (문지기) - 새로 추가됨!
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - web
     restart: always
