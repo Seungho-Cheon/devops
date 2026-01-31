@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s # 15초마다 정보를 수집함
+
+scrape_configs:
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['node-exporter:9100'] # 스파이(Node Exporter)의 주소
