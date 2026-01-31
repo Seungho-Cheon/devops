@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  # [Job 1] 이미지 빌드 및 배포 (기존과 동일)
+  # [Job 1] 빌드하고 도커 허브에 올리기 (변동 없음)
   build-and-push:
     runs-on: ubuntu-latest
     steps:
@@ -25,7 +25,7 @@ jobs:
         push: true
         tags: ${{ secrets.DOCKER_USERNAME }}/my-python-app:latest
 
-  # [Job 2] AWS 서버 배포 (업그레이드됨!)
+  # [Job 2] AWS 서버 배포 (하이픈 버전으로 수정됨!)
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -33,7 +33,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 1. docker-compose.yml 파일을 서버로 복사 (scp)
+    # 1. docker-compose.yml 파일 전송
     - name: Copy docker-compose.yml via SSH
       uses: appleboy/scp-action@v0.1.7
       with:
@@ -43,7 +43,7 @@ jobs:
         source: "docker-compose.yml"
         target: "/home/ubuntu/"
 
-    # 2. 서버에 접속해서 실행
+    # 2. 서버에서 실행 (명령어 수정됨: docker-compose)
     - name: Execute remote ssh commands
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -51,19 +51,17 @@ jobs:
         username: ubuntu
         key: ${{ secrets.EC2_KEY }}
         script: |
-          # Docker Compose 플러그인 설치 (없으면 설치)
+          # 1. 혹시 모르니 docker-compose 설치 확인 (없으면 설치)
           sudo apt-get update
-          sudo apt-get install -y docker-compose-plugin
+          sudo apt-get install -y docker-compose
 
-          # 1. 기존 컨테이너 정리 (충돌 방지)
-          # (기존에 docker run으로 띄운게 있다면 삭제합니다)
-          sudo docker rm -f $(sudo docker ps -aq) || true
+          # 2. 최신 이미지 받아오기 (하이픈 사용!)
+          sudo docker-compose pull
 
-          # 2. 최신 이미지 가져오기
-          sudo docker compose pull
-
-          # 3. 서비스 실행 (백그라운드)
-          sudo docker compose up -d
+          # 3. 서비스 실행 (하이픈 사용!)
+          # -d: 백그라운드 실행
+          # --remove-orphans: 설정에서 빠진 옛날 컨테이너 삭제
+          sudo docker-compose up -d --remove-orphans
 
           # 4. 불필요한 이미지 청소
           sudo docker image prune -f
