@@ -28,7 +28,6 @@ services:
     restart: always
 
   # --- [신규 추가] 모니터링 삼총사 ---
-
   # 1. Prometheus (기록관)
   prometheus:
     image: prom/prometheus:latest
